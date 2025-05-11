@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AudioFX Processor | Advanced Audio Manipulation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lamejs@1.2.1/lame.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pizzicato@0.6.4/dist/Pizzicato.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --secondary: #10b981;
+      --dark: #1e293b;
+      --light: #f8fafc;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+      min-height: 100vh;
+    }
+    
+    /* Custom range inputs */
+    input[type="range"] {
+      -webkit-appearance: none;
+      height: 8px;
+      border-radius: 4px;
+      background: #e2e8f0;
+      outline: none;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      background: var(--primary);
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: all 0.2s ease;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.1);
+      background: var(--primary-dark);
+    }
+    
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      background: var(--primary);
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    /* Custom file input */
+    .file-input {
+      border: 2px dashed #cbd5e1;
+      transition: all 0.3s ease;
+    }
+    
+    .file-input:hover {
+      border-color: var(--primary);
+      background-color: rgba(99, 102, 241, 0.05);
+    }
+    
+    .file-input.dragover {
+      border-color: var(--secondary);
+      background-color: rgba(16, 185, 129, 0.1);
+    }
+    
+    /* Animation for buttons */
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    
+    .pulse:hover {
+      animation: pulse 1.5s infinite;
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    
+    /* Tooltip */
+    .tooltip {
+      position: relative;
+    }
+    
+    .tooltip .tooltip-text {
+      visibility: hidden;
+      width: 120px;
+      background-color: var(--dark);
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 5px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 12px;
+    }
+    
+    .tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+    
+    /* Waveform */
+    .waveform-container {
+      position: relative;
+      height: 100px;
+      background: linear-gradient(to bottom, #f8fafc, #e2e8f0);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .waveform {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 100%;
+      height: 40px;
+      transform: translateY(-50%);
+    }
+    
+    .progress-line {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 0;
+      background-color: rgba(99, 102, 241, 0.2);
+      pointer-events: none;
+    }
+    
+    /* Equalizer */
+    .equalizer-bar {
+      background: linear-gradient(to top, var(--primary), #a5b4fc);
+      width: 12px;
+      margin: 0 2px;
+      border-radius: 4px;
+      transition: height 0.2s ease;
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-6 text-center">
+      <h1 class="text-3xl font-bold text-white flex items-center justify-center">
+        <i class="fas fa-wave-square mr-3"></i>
+        AudioFX Processor
+      </h1>
+      <p class="text-indigo-100 mt-2">Advanced audio manipulation in your browser</p>
+    </div>
+    
+    <div class="p-6 sm:p-8">
+      <!-- File Upload -->
+      <div class="mb-8">
+        <label for="audioInput" class="block text-sm font-medium text-gray-700 mb-2">
+          <i class="fas fa-file-audio mr-2 text-indigo-500"></i>
+          Upload Audio File
+        </label>
+        <div id="dropZone" class="file-input rounded-lg p-6 text-center cursor-pointer">
+          <div class="flex flex-col items-center justify-center">
+            <i class="fas fa-cloud-upload-alt text-4xl text-indigo-400 mb-3"></i>
+            <p class="text-gray-600 mb-1">Drag & drop your audio file here</p>
+            <p class="text-sm text-gray-500 mb-3">or</p>
+            <label for="audioInput" class="bg-indigo-500 text-white px-4 py-2 rounded-md cursor-pointer hover:bg-indigo-600 transition">
+              <i class="fas fa-folder-open mr-2"></i>
+              Browse Files
+            </label>
+            <input type="file" id="audioInput" accept="audio/*" class="hidden">
+            <p class="text-xs text-gray-500 mt-3">Supports MP3, WAV, OGG, AAC (max 25MB)</p>
+          </div>
+        </div>
+        <div id="fileInfo" class="mt-3 text-sm text-gray-600 hidden">
+          <i class="fas fa-check-circle text-green-500 mr-2"></i>
+          <span id="fileName"></span>
+          <span id="fileSize" class="text-gray-500 ml-2"></span>
+        </div>
+      </div>
+      
+      <!-- Waveform Display -->
+      <div class="waveform-container mb-6 hidden" id="waveformContainer">
+        <canvas id="waveform" class="waveform"></canvas>
+        <div class="progress-line" id="progressLine"></div>
+      </div>
+      
+      <!-- Audio Controls -->
+      <div class="flex items-center justify-between mb-6" id="audioControls">
+        <!-- Play/Pause -->
+        <button id="playPauseButton" class="bg-indigo-500 hover:bg-indigo-600 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-md tooltip" disabled>
+          <i id="playIcon" class="fas fa-play text-lg"></i>
+          <i id="pauseIcon" class="fas fa-pause text-lg hidden"></i>
+          <span class="tooltip-text">Play/Pause</span>
+        </button>
+        
+        <!-- Current Time -->
+        <div class="text-sm font-medium text-gray-700">
+          <span id="currentTime">0:00</span>
+          <span class="mx-1">/</span>
+          <span id="duration">0:00</span>
+        </div>
+        
+        <!-- Volume Control -->
+        <div class="flex items-center">
+          <i class="fas fa-volume-down text-gray-500 mr-2"></i>
+          <input type="range" id="volume" min="0" max="1" step="0.01" value="0.7" class="w-24">
+        </div>
+      </div>
+      
+      <!-- Progress Bar -->
+      <input type="range" id="progress" min="0" max="100" value="0" class="w-full mb-8" disabled>
+      
+      <!-- Effects Panel -->
+      <div class="bg-gray-50 rounded-xl p-4 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+          <i class="fas fa-sliders-h mr-2 text-indigo-500"></i>
+          Audio Effects
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Reverb -->
+          <div class="effect-control">
+            <label for="reverb" class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+              <i class="fas fa-echo mr-2 text-indigo-500"></i>
+              Reverb
+            </label>
+            <div class="flex items-center">
+              <input type="range" id="reverb" min="0" max="10" value="0" step="0.1" class="flex-1">
+              <span id="reverbValue" class="ml-3 text-sm font-medium text-gray-600 w-10">0</span>
+            </div>
+          </div>
+          
+          <!-- Speed -->
+          <div class="effect-control">
+            <label for="speed" class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+              <i class="fas fa-tachometer-alt mr-2 text-indigo-500"></i>
+              Speed
+            </label>
+            <div class="flex items-center">
+              <input type="range" id="speed" min="0.5" max="2" step="0.1" value="1" class="flex-1">
+              <span id="speedValue" class="ml-3 text-sm font-medium text-gray-600 w-10">1x</span>
+            </div>
+          </div>
+          
+          <!-- Pitch -->
+          <div class="effect-control">
+            <label for="pitch" class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+              <i class="fas fa-music mr-2 text-indigo-500"></i>
+              Pitch
+            </label>
+            <div class="flex items-center">
+              <input type="range" id="pitch" min="-12" max="12" value="0" class="flex-1">
+              <span id="pitchValue" class="ml-3 text-sm font-medium text-gray-600 w-10">0</span>
+            </div>
+          </div>
+          
+          <!-- Delay -->
+          <div class="effect-control">
+            <label for="delay" class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+              <i class="fas fa-redo mr-2 text-indigo-500"></i>
+              Delay
+            </label>
+            <div class="flex items-center">
+              <input type="range" id="delay" min="0" max="1" step="0.05" value="0" class="flex-1">
+              <span id="delayValue" class="ml-3 text-sm font-medium text-gray-600 w-10">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Equalizer -->
+      <div class="bg-gray-50 rounded-xl p-4 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+          <i class="fas fa-equals mr-2 text-indigo-500"></i>
+          Equalizer
+        </h3>
+        <div class="flex items-end justify-between h-32 px-4">
+          <div class="equalizer-bar" id="eqLow" style="height: 50%"></div>
+          <div class="equalizer-bar" id="eqMid" style="height: 70%"></div>
+          <div class="equalizer-bar" id="eqHigh" style="height: 60%"></div>
+          <div class="equalizer-bar" id="eqPresence" style="height: 55%"></div>
+          <div class="equalizer-bar" id="eqBrilliance" style="height: 45%"></div>
+        </div>
+        <div class="flex justify-between text-xs text-gray-500 mt-2 px-2">
+          <span>60Hz</span>
+          <span>250Hz</span>
+          <span>1kHz</span>
+          <span>4kHz</span>
+          <span>16kHz</span>
+        </div>
+      </div>
+      
+      <!-- Action Buttons -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- Reset Button -->
+        <button id="resetButton" class="bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 px-4 rounded-lg font-medium transition flex items-center justify-center">
+          <i class="fas fa-redo mr-2"></i>
+          Reset Effects
+        </button>
+        
+        <!-- Download Button -->
+        <button id="downloadButton" class="bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg font-medium transition pulse flex items-center justify-center" disabled>
+          <i class="fas fa-download mr-2"></i>
+          Download MP3
+          <i id="downloadSpinner" class="fas fa-spinner fa-spin ml-2 hidden"></i>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="bg-gray-50 px-6 py-4 text-center text-sm text-gray-500 border-t">
+      <p>AudioFX Processor v1.0 &copy; 2025 | Works entirely in your browser</p>
+    </div>
+  </div>
+  <script>
+    let audioContext;
+    let audioBuffer;
+    let source;
+    let convolver;
+    let gainNode;
+    let isPlaying = false;
+    let startTime = 0;
+    let pauseTime = 0;
+    let animationFrameId;
+
+    const audioInput = document.getElementById('audioInput');
+    const playPauseButton = document.getElementById('playPauseButton');
+    const playIcon = document.getElementById('playIcon');
+    const pauseIcon = document.getElementById('pauseIcon');
+    const playPauseText = document.getElementById('playPauseText');
+    const downloadButton = document.getElementById('downloadButton');
+    const downloadSpinner = document.getElementById('downloadSpinner');
+    const reverbSlider = document.getElementById('reverb');
+    const speedSlider = document.getElementById('speed');
+    const pitchSlider = document.getElementById('pitch');
+    const reverbValue = document.getElementById('reverbValue');
+    const speedValue = document.getElementById('speedValue');
+    const pitchValue = document.getElementById('pitchValue');
+    const progress = document.getElementById('progress');
+    const currentTimeDisplay = document.getElementById('currentTime');
+    const durationDisplay = document.getElementById('duration');
+
+    // Format time in mm:ss
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    }
+
+    // Generate impulse response for reverb
+    function createImpulseResponse(context, duration = 2, decay = 2) {
+      const sampleRate = context.sampleRate;
+      const length = sampleRate * duration;
+      const impulse = context.createBuffer(2, length, sampleRate);
+      const impulseL = impulse.getChannelData(0);
+      const impulseR = impulse.getChannelData(1);
+
+      for (let i = 0; i < length; i++) {
+        const n = length - i;
+        impulseL[i] = (Math.random() * 2 - 1) * Math.pow(n / length, decay);
+        impulseR[i] = (Math.random() * 2 - 1) * Math.pow(n / length, decay);
+      }
+      return impulse;
+    }
+
+    // Update slider values
+    reverbSlider.addEventListener('input', () => {
+      reverbValue.textContent = reverbSlider.value;
+      if (source) gainNode.gain.value = parseFloat(reverbSlider.value) / 10;
+    });
+    speedSlider.addEventListener('input', () => {
+      speedValue.textContent = parseFloat(speedSlider.value).toFixed(1);
+      if (source) source.playbackRate.value = parseFloat(speedSlider.value);
+      if (audioBuffer) {
+        durationDisplay.textContent = formatTime(audioBuffer.duration / parseFloat(speedSlider.value));
+      }
+    });
+    pitchSlider.addEventListener('input', () => {
+      pitchValue.textContent = pitchSlider.value;
+      if (source) source.detune.value = parseFloat(pitchSlider.value) * 100;
+    });
+
+    // Update progress bar and time display
+    function updateProgress() {
+      if (isPlaying && source && audioBuffer) {
+        const currentTime = audioContext.currentTime - startTime + pauseTime;
+        const duration = audioBuffer.duration / parseFloat(speedSlider.value);
+        const progressValue = Math.min((currentTime / duration) * 100, 100);
+        progress.value = progressValue;
+        currentTimeDisplay.textContent = formatTime(currentTime);
+        if (currentTime >= duration) {
+          stopPlayback();
+        }
+        animationFrameId = requestAnimationFrame(updateProgress);
+      }
+    }
+
+    // Stop playback
+    function stopPlayback() {
+      if (source) {
+        source.stop();
+        source = null;
+      }
+      isPlaying = false;
+      playPauseText.textContent = 'Play';
+      playIcon.classList.remove('hidden');
+      pauseIcon.classList.add('hidden');
+      progress.value = 0;
+      currentTimeDisplay.textContent = '0:00';
+      pauseTime = 0;
+      cancelAnimationFrame(animationFrameId);
+    }
+
+    // Load and decode audio file
+    audioInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      try {
+        if (audioContext) {
+          await audioContext.close();
+        }
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const arrayBuffer = await file.arrayBuffer();
+        audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        playPauseButton.disabled = false;
+        downloadButton.disabled = false;
+        progress.disabled = false;
+        durationDisplay.textContent = formatTime(audioBuffer.duration / parseFloat(speedSlider.value));
+
+        // Setup reverb
+        convolver = audioContext.createConvolver();
+        convolver.buffer = createImpulseResponse(audioContext);
+        gainNode = audioContext.createGain();
+      } catch (err) {
+        alert('Error loading audio file: ' + err.message);
+      }
+    });
+
+    // Play or pause audio
+    playPauseButton.addEventListener('click', () => {
+      if (isPlaying) {
+        audioContext.suspend();
+        isPlaying = false;
+        playPauseText.textContent = 'Play';
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+        cancelAnimationFrame(animationFrameId);
+      } else {
+        if (!audioBuffer) return;
+        if (source) {
+          audioContext.resume();
+        } else {
+          source = audioContext.createBufferSource();
+          source.buffer = audioBuffer;
+          source.playbackRate.value = parseFloat(speedSlider.value);
+          source.detune.value = parseFloat(pitchSlider.value) * 100;
+          gainNode.gain.value = parseFloat(reverbSlider.value) / 10;
+
+          source.connect(audioContext.destination);
+          source.connect(convolver);
+          convolver.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+
+          source.start(0, pauseTime);
+          startTime = audioContext.currentTime - pauseTime;
+        }
+        isPlaying = true;
+        playPauseText.textContent = 'Pause';
+        playIcon.classList.add('hidden');
+        pauseIcon.classList.remove('hidden');
+        updateProgress();
+      }
+    });
+
+    // Seek audio
+    progress.addEventListener('input', () => {
+      if (!audioBuffer) return;
+      const duration = audioBuffer.duration / parseFloat(speedSlider.value);
+      const seekTime = Math.max(0, Math.min((progress.value / 100) * duration, duration));
+      pauseTime = seekTime;
+      currentTimeDisplay.textContent = formatTime(seekTime);
+      if (isPlaying) {
+        if (source) source.stop();
+        source = audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.playbackRate.value = parseFloat(speedSlider.value);
+        source.detune.value = parseFloat(pitchSlider.value) * 100;
+        gainNode.gain.value = parseFloat(reverbSlider.value) / 10;
+
+        source.connect(audioContext.destination);
+        source.connect(convolver);
+        convolver.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        source.start(0, pauseTime);
+        startTime = audioContext.currentTime - pauseTime;
+        updateProgress();
+      }
+    });
+
+    // Download as MP3
+    downloadButton.addEventListener('click', async () => {
+      if (!audioBuffer) {
+        alert('No audio file loaded.');
+        return;
+      }
+      try {
+        downloadButton.disabled = true;
+        downloadSpinner.classList.remove('hidden');
+        const speed = parseFloat(speedSlider.value);
+        if (speed <= 0) throw new Error('Invalid speed value.');
+
+        // Create OfflineAudioContext for rendering
+        const offlineContext = new OfflineAudioContext(
+          audioBuffer.numberOfChannels,
+          Math.ceil(audioBuffer.length / speed),
+          audioBuffer.sampleRate
+        );
+
+        const source = offlineContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.playbackRate.value = speed;
+        source.detune.value = parseFloat(pitchSlider.value) * 100;
+
+        const convolver = offlineContext.createConvolver();
+        convolver.buffer = createImpulseResponse(offlineContext);
+        const gain = offlineContext.createGain();
+        gain.gain.value = parseFloat(reverbSlider.value) / 10;
+
+        source.connect(offlineContext.destination);
+        source.connect(convolver);
+        convolver.connect(gain);
+        gain.connect(offlineContext.destination);
+
+        source.start();
+        const renderedBuffer = await offlineContext.startRendering();
+
+        // Convert to MP3
+        const mp3Blob = await audioBufferToMp3(renderedBuffer);
+
+        // Trigger download
+        const url = URL.createObjectURL(mp3Blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'processed_audio.mp3';
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert('Error processing or downloading audio: ' + err.message);
+      } finally {
+        downloadButton.disabled = false;
+        downloadSpinner.classList.add('hidden');
+      }
+    });
+
+    // Convert AudioBuffer to MP3 Blob
+    async function audioBufferToMp3(buffer) {
+      try {
+        const numChannels = buffer.numberOfChannels;
+        const sampleRate = buffer.sampleRate;
+        const samples = buffer.length;
+
+        // Prepare samples for lamejs
+        const left = buffer.getChannelData(0);
+        const right = numChannels > 1 ? buffer.getChannelData(1) : left;
+        const leftSamples = new Int16Array(samples);
+        const rightSamples = new Int16Array(samples);
+
+        for (let i = 0; i < samples; i++) {
+          leftSamples[i] = Math.max(-1, Math.min(1, left[i])) * 0x7FFF;
+          rightSamples[i] = Math.max(-1, Math.min(1, right[i])) * 0x7FFF;
+        }
+
+        // Encode to MP3
+        const mp3Encoder = new lamejs.Mp3Encoder(numChannels, sampleRate, 128);
+        const mp3Data = [];
+        const blockSize = 1152;
+
+        for (let i = 0; i < samples; i += blockSize) {
+          const leftChunk = leftSamples.subarray(i, i + blockSize);
+          const rightChunk = rightSamples.subarray(i, i + blockSize);
+          const mp3buf = mp3Encoder.encodeBuffer(leftChunk, rightChunk);
+          if (mp3buf.length > 0) {
+            mp3Data.push(mp3buf);
+          }
+        }
+
+        const mp3buf = mp3Encoder.flush();
+        if (mp3buf.length > 0) {
+          mp3Data.push(mp3buf);
+        }
+
+        const mp3Array = new Uint8Array(mp3Data.reduce((acc, curr) => acc.concat(Array.from(curr)), []));
+        return new Blob([mp3Array], { type: 'audio/mp3' });
+      } catch (err) {
+        throw new Error('MP3 encoding failed: ' + err.message);
+      }
+    }
+
+    // Convert AudioBuffer to WAV Blob (for fallback or debugging)
+    function audioBufferToWav(buffer) {
+      const numChannels = buffer.numberOfChannels;
+      const sampleRate = buffer.sampleRate;
+      const length = buffer.length * numChannels * 2 + 44;
+      const arrayBuffer = new ArrayBuffer(length);
+      const view = new DataView(arrayBuffer);
+
+      let offset = 0;
+      const writeString = (str) => {
+        for (let i = 0; i < str.length; i++) {
+          view.setUint8(offset + i, str.charCodeAt(i));
+        }
+        offset += str.length;
+      };
+
+      // WAV header
+      writeString('RIFF');
+      view.setUint32(offset, 36 + buffer.length * numChannels * 2, true);
+      offset += 4;
+      writeString('WAVE');
+      writeString('fmt ');
+      view.setUint32(offset, 16, true);
+      offset += 4;
+      view.setUint16(offset, 1, true); // PCM format
+      offset += 2;
+      view.setUint16(offset, numChannels, true);
+      offset += 2;
+      view.setUint32(offset, sampleRate, true);
+      offset += 4;
+      view.setUint32(offset, sampleRate * numChannels * 2, true);
+      offset += 4;
+      view.setUint16(offset, numChannels * 2, true);
+      offset += 2;
+      view.setUint16(offset, 16, true); // Bits per sample
+      offset += 2;
+      writeString('data');
+      view.setUint32(offset, buffer.length * numChannels * 2, true);
+      offset += 4;
+
+      // Write audio data
+      for (let i = 0; i < buffer.length; i++) {
+        for (let channel = 0; channel < numChannels; channel++) {
+          const sample = Math.max(-1, Math.min(1, buffer.getChannelData(channel)[i]));
+          view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+          offset += 2;
+        }
+      }
+
+      return new Blob([arrayBuffer], { type: 'audio/wav' });
+    }
+  </script>
+</body>
+</html>
