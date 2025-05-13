@@ -6,7 +6,7 @@
   <title>AudioFX Processor | Advanced Audio Manipulation</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lamejs@1.2.1/lame.min.js"></script>
-  <script src="assets/Pizzicato.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pizzicato@0.6.4/dist/Pizzicato.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -23,6 +23,44 @@
       font-family: 'Inter', sans-serif;
       background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
       min-height: 100vh;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    
+    body.dark-mode {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      color: #f8fafc;
+    }
+    
+    .dark-mode .bg-white {
+      background-color: #1e293b !important;
+      color: #f8fafc;
+    }
+    
+    .dark-mode .bg-gray-50 {
+      background-color: #0f172a !important;
+    }
+    
+    .dark-mode .text-gray-700, 
+    .dark-mode .text-gray-600,
+    .dark-mode .text-gray-800 {
+      color: #e2e8f0 !important;
+    }
+    
+    .dark-mode .text-gray-500 {
+      color: #94a3b8 !important;
+    }
+    
+    .dark-mode .file-input {
+      border-color: #334155 !important;
+      background-color: #0f172a !important;
+    }
+    
+    .dark-mode .file-input:hover {
+      border-color: var(--primary) !important;
+    }
+    
+    .dark-mode input[type="range"] {
+      background: #334155;
     }
     
     /* Custom range inputs */
@@ -89,19 +127,6 @@
       animation: pulse 1.5s infinite;
     }
     
-    /* Play button animation */
-    .play-button-transition {
-      transition: transform 0.2s ease, background-color 0.2s ease;
-    }
-    
-    .play-button-transition:hover {
-      transform: scale(1.1);
-    }
-    
-    .play-button-transition:active {
-      transform: scale(0.95);
-    }
-    
     /* Custom scrollbar */
     ::-webkit-scrollbar {
       width: 8px;
@@ -157,6 +182,10 @@
       overflow: hidden;
     }
     
+    .dark-mode .waveform-container {
+      background: linear-gradient(to bottom, #1e293b, #0f172a);
+    }
+    
     .waveform {
       position: absolute;
       top: 50%;
@@ -174,72 +203,58 @@
       width: 0;
       background-color: rgba(99, 102, 241, 0.2);
       pointer-events: none;
-      transition: width 0.1s linear;
     }
     
-    /* Trimming Waveform */
-    .trim-container {
-      position: relative;
-      height: 120px;
-      background: #1e3a8a;
-      border-radius: 8px;
-      overflow: hidden;
+    /* Toggle switch */
+    .toggle-checkbox:checked {
+      right: 0;
+      border-color: #6366f1;
+    }
+    .toggle-checkbox:checked + .toggle-label {
+      background-color: #6366f1;
     }
     
-    .trim-waveform {
-      position: absolute;
-      top: 50%;
-      left: 0;
-      width: 100%;
-      height: 60px;
-      transform: translateY(-50%);
+    /* Range slider for cutter */
+    .cutter-range {
+      -webkit-appearance: none;
+      height: 6px;
+      background: #e2e8f0;
+      border-radius: 3px;
+      outline: none;
     }
     
-    .trim-handle {
-      position: absolute;
-      top: 0;
-      width: 4px;
-      height: 100%;
-      background: #38bdf8;
-      cursor: ew-resize;
-      z-index: 2;
+    .cutter-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      background: #ef4444;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid white;
     }
     
-    .trim-handle::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 12px;
-      height: 12px;
-      background: #38bdf8;
-      transform: translate(-50%, -50%) rotate(45deg);
+    .dark-mode .cutter-range {
+      background: #334155;
     }
     
-    .trim-time {
-      position: absolute;
-      top: -20px;
-      color: white;
-      font-size: 12px;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.5);
-      padding: 2px 6px;
-      border-radius: 4px;
-    }
-    
-    .trim-selection {
-      position: absolute;
-      top: 0;
-      height: 100%;
-      background: rgba(255, 255, 255, 0.2);
-      pointer-events: none;
+    .dark-mode .cutter-range::-webkit-slider-thumb {
+      background: #ef4444;
     }
   </style>
 </head>
 <body class="flex flex-col items-center justify-center p-4">
   <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden">
     <!-- Header -->
-    <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-6 text-center">
+    <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-6 text-center relative">
+      <div class="absolute top-4 right-4">
+        <div class="flex items-center">
+          <span class="mr-2 text-sm text-indigo-100">Dark Mode</span>
+          <div class="relative inline-block w-10 mr-2 align-middle select-none">
+            <input type="checkbox" id="toggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
+            <label for="toggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+          </div>
+        </div>
+      </div>
       <h1 class="text-3xl font-bold text-white flex items-center justify-center">
         <i class="fas fa-wave-square mr-3"></i>
         AudioFX Processor
@@ -267,15 +282,15 @@
             <p class="text-xs text-gray-500 mt-3">Supports MP3, WAV, OGG, AAC (max 25MB)</p>
           </div>
         </div>
-        <div id="fileInfo" class="mt-3 text-sm text-gray-600">
+        <div id="fileInfo" class="mt-3 text-sm text-gray-600 hidden">
           <i class="fas fa-check-circle text-green-500 mr-2"></i>
-          <span id="fileName">No file selected</span>
+          <span id="fileName"></span>
           <span id="fileSize" class="text-gray-500 ml-2"></span>
         </div>
       </div>
       
       <!-- Waveform Display -->
-      <div class="waveform-container mb-6" id="waveformContainer">
+      <div class="waveform-container mb-6 hidden" id="waveformContainer">
         <canvas id="waveform" class="waveform"></canvas>
         <div class="progress-line" id="progressLine"></div>
       </div>
@@ -283,7 +298,7 @@
       <!-- Audio Controls -->
       <div class="flex items-center justify-between mb-6" id="audioControls">
         <!-- Play/Pause -->
-        <button id="playPauseButton" class="bg-indigo-500 hover:bg-indigo-600 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-md tooltip play-button-transition" disabled>
+        <button id="playPauseButton" class="bg-indigo-500 hover:bg-indigo-600 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-md tooltip transition-transform transform hover:scale-105" disabled>
           <i id="playIcon" class="fas fa-play text-lg"></i>
           <i id="pauseIcon" class="fas fa-pause text-lg hidden"></i>
           <span class="tooltip-text">Play/Pause</span>
@@ -304,7 +319,7 @@
       </div>
       
       <!-- Progress Bar -->
-      <input type="range" id="progress" min="0" max="100" value="0" class="w-full mb-8">
+      <input type="range" id="progress" min="0" max="100" value="0" class="w-full mb-8" disabled>
       
       <!-- Effects Panel -->
       <div class="bg-gray-50 rounded-xl p-4 mb-6">
@@ -361,43 +376,42 @@
               <span id="delayValue" class="ml-3 text-sm font-medium text-gray-600 w-10">0</span>
             </div>
           </div>
-        </div>
-      </div>
-      
-      <!-- Bass Booster Section -->
-      <div class="bg-gray-50 rounded-xl p-4 mb-6">
-        <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-          <i class="fas fa-drum mr-2 text-indigo-500"></i>
-          Bass Booster
-        </h3>
-        <div class="effect-control">
-          <label for="bass" class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-            <i class="fas fa-drum mr-2 text-indigo-500"></i>
-            Bass Boost
-          </label>
-          <div class="flex items-center">
-            <input type="range" id="bass" min="0" max="20" value="0" step="1" class="flex-1">
-            <span id="bassValue" class="ml-3 text-sm font-medium text-gray-600 w-10">0 dB</span>
+          
+          <!-- Bass Boost -->
+          <div class="effect-control">
+            <label for="bassBoost" class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+              <i class="fas fa-volume-up mr-2 text-indigo-500"></i>
+              Bass Boost
+            </label>
+            <div class="flex items-center">
+              <input type="range" id="bassBoost" min="0" max="20" step="1" value="0" class="flex-1">
+              <span id="bassBoostValue" class="ml-3 text-sm font-medium text-gray-600 w-10">0</span>
+            </div>
           </div>
         </div>
       </div>
       
-      <!-- MP3 Cutter -->
-      <div class="bg-gray-50 rounded-xl p-4 mb-6">
+      <!-- Audio Cutter -->
+      <div class="bg-gray-50 rounded-xl p-4 mb-6" id="cutterSection">
         <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
           <i class="fas fa-cut mr-2 text-indigo-500"></i>
-          MP3 Cutter
+          Audio Cutter
         </h3>
-        <div class="trim-container" id="trimContainer">
-          <canvas id="trimWaveform" class="trim-waveform"></canvas>
-          <div id="trimSelection" class="trim-selection"></div>
-          <div id="trimStartHandle" class="trim-handle">
-            <span id="trimStartTime" class="trim-time">0:00</span>
+        <div class="mb-4">
+          <div class="flex justify-between text-sm text-gray-600 mb-2">
+            <span id="startTimeLabel">Start: 0:00</span>
+            <span id="endTimeLabel">End: 0:00</span>
           </div>
-          <div id="trimEndHandle" class="trim-handle">
-            <span id="trimEndTime" class="trim-time">0:00</span>
+          <div class="flex items-center">
+            <input type="range" id="cutterStart" min="0" max="100" value="0" class="cutter-range flex-1" disabled>
+            <span class="mx-2 text-gray-500">-</span>
+            <input type="range" id="cutterEnd" min="0" max="100" value="100" class="cutter-range flex-1" disabled>
           </div>
         </div>
+        <button id="applyCutterButton" class="bg-indigo-500 hover:bg-indigo-600 text-white py-2 px-4 rounded-md text-sm font-medium transition disabled:opacity-50" disabled>
+          <i class="fas fa-check mr-2"></i>
+          Apply Cutter
+        </button>
       </div>
       
       <!-- Action Buttons -->
@@ -408,696 +422,665 @@
           Reset Effects
         </button>
         
-        <!-- Download Button -->
+        <!-- Download MP3 Button -->
         <button id="downloadButton" class="bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg font-medium transition pulse flex items-center justify-center" disabled>
           <i class="fas fa-download mr-2"></i>
           Download MP3
           <i id="downloadSpinner" class="fas fa-spinner fa-spin ml-2 hidden"></i>
         </button>
         
-        <!-- Download Bass Boosted -->
+        <!-- Download Bass Boosted Button -->
         <button id="downloadBassButton" class="bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg font-medium transition pulse flex items-center justify-center" disabled>
           <i class="fas fa-download mr-2"></i>
-          Download Bass MP3
+          Bass Boosted
           <i id="downloadBassSpinner" class="fas fa-spinner fa-spin ml-2 hidden"></i>
         </button>
         
-        <!-- Download Trimmed -->
-        <button id="downloadTrimButton" class="bg-purple-500 hover:bg-purple-600 text-white py-3 px-4 rounded-lg font-medium transition pulse flex items-center justify-center" disabled>
+        <!-- Download Cut Audio Button -->
+        <button id="downloadCutButton" class="bg-red-500 hover:bg-red-600 text-white py-3 px-4 rounded-lg font-medium transition pulse flex items-center justify-center" disabled>
           <i class="fas fa-download mr-2"></i>
-          Download Trimmed MP3
-          <i id="downloadTrimSpinner" class="fas fa-spinner fa-spin ml-2 hidden"></i>
+          Cut Audio
+          <i id="downloadCutSpinner" class="fas fa-spinner fa-spin ml-2 hidden"></i>
         </button>
       </div>
     </div>
     
     <!-- Footer -->
     <div class="bg-gray-50 px-6 py-4 text-center text-sm text-gray-500 border-t">
-      <p>AudioFX Processor v1.0 © 2025 | Works entirely in your browser</p>
+      <p>AudioFX Processor v1.1 &copy; 2025 | Works entirely in your browser</p>
     </div>
   </div>
   <script>
-    // Wait for the DOM and all scripts to load before running the code
-    window.addEventListener('DOMContentLoaded', () => {
-      let audioContext;
-      let audioBuffer;
-      let source;
-      let convolver;
-      let gainNode;
-      let volumeNode;
-      let bassNode;
-      let pizzicatoSound;
-      let isPlaying = false;
-      let startTime = 0;
-      let pauseTime = 0;
-      let animationFrameId;
-      let trimStart = 0;
-      let trimEnd = 0;
+    let audioContext;
+    let audioBuffer;
+    let source;
+    let convolver;
+    let gainNode;
+    let delayNode;
+    let biquadFilter;
+    let isPlaying = false;
+    let startTime = 0;
+    let pauseTime = 0;
+    let animationFrameId;
+    let originalBuffer = null;
+    let cutStart = 0;
+    let cutEnd = 100;
 
-      const audioInput = document.getElementById('audioInput');
-      const dropZone = document.getElementById('dropZone');
-      const fileInfo = document.getElementById('fileInfo');
-      const fileName = document.getElementById('fileName');
-      const fileSize = document.getElementById('fileSize');
-      const playPauseButton = document.getElementById('playPauseButton');
-      const playIcon = document.getElementById('playIcon');
-      const pauseIcon = document.getElementById('pauseIcon');
-      const downloadButton = document.getElementById('downloadButton');
-      const downloadSpinner = document.getElementById('downloadSpinner');
-      const downloadBassButton = document.getElementById('downloadBassButton');
-      const downloadBassSpinner = document.getElementById('downloadBassSpinner');
-      const downloadTrimButton = document.getElementById('downloadTrimButton');
-      const downloadTrimSpinner = document.getElementById('downloadTrimSpinner');
-      const reverbSlider = document.getElementById('reverb');
-      const speedSlider = document.getElementById('speed');
-      const pitchSlider = document.getElementById('pitch');
-      const delaySlider = document.getElementById('delay');
-      const bassSlider = document.getElementById('bass');
-      const reverbValue = document.getElementById('reverbValue');
-      const speedValue = document.getElementById('speedValue');
-      const pitchValue = document.getElementById('pitchValue');
-      const delayValue = document.getElementById('delayValue');
-      const bassValue = document.getElementById('bassValue');
-      const progress = document.getElementById('progress');
-      const progressLine = document.getElementById('progressLine');
-      const currentTimeDisplay = document.getElementById('currentTime');
-      const durationDisplay = document.getElementById('duration');
-      const volumeSlider = document.getElementById('volume');
-      const resetButton = document.getElementById('resetButton');
-      const trimContainer = document.getElementById('trimContainer');
-      const trimWaveform = document.getElementById('trimWaveform');
-      const trimSelection = document.getElementById('trimSelection');
-      const trimStartHandle = document.getElementById('trimStartHandle');
-      const trimEndHandle = document.getElementById('trimEndHandle');
-      const trimStartTime = document.getElementById('trimStartTime');
-      const trimEndTime = document.getElementById('trimEndTime');
-      const waveformContainer = document.getElementById('waveformContainer');
-      const waveformCanvas = document.getElementById('waveform');
+    // DOM Elements
+    const audioInput = document.getElementById('audioInput');
+    const playPauseButton = document.getElementById('playPauseButton');
+    const playIcon = document.getElementById('playIcon');
+    const pauseIcon = document.getElementById('pauseIcon');
+    const downloadButton = document.getElementById('downloadButton');
+    const downloadBassButton = document.getElementById('downloadBassButton');
+    const downloadCutButton = document.getElementById('downloadCutButton');
+    const downloadSpinner = document.getElementById('downloadSpinner');
+    const downloadBassSpinner = document.getElementById('downloadBassSpinner');
+    const downloadCutSpinner = document.getElementById('downloadCutSpinner');
+    const reverbSlider = document.getElementById('reverb');
+    const speedSlider = document.getElementById('speed');
+    const pitchSlider = document.getElementById('pitch');
+    const delaySlider = document.getElementById('delay');
+    const bassBoostSlider = document.getElementById('bassBoost');
+    const reverbValue = document.getElementById('reverbValue');
+    const speedValue = document.getElementById('speedValue');
+    const pitchValue = document.getElementById('pitchValue');
+    const delayValue = document.getElementById('delayValue');
+    const bassBoostValue = document.getElementById('bassBoostValue');
+    const progress = document.getElementById('progress');
+    const currentTimeDisplay = document.getElementById('currentTime');
+    const durationDisplay = document.getElementById('duration');
+    const volumeSlider = document.getElementById('volume');
+    const resetButton = document.getElementById('resetButton');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const waveformContainer = document.getElementById('waveformContainer');
+    const cutterStart = document.getElementById('cutterStart');
+    const cutterEnd = document.getElementById('cutterEnd');
+    const startTimeLabel = document.getElementById('startTimeLabel');
+    const endTimeLabel = document.getElementById('endTimeLabel');
+    const applyCutterButton = document.getElementById('applyCutterButton');
+    const toggleSwitch = document.getElementById('toggle');
 
-      // Format time in mm:ss
-      function formatTime(seconds) {
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    // Format time in mm:ss
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    }
+
+    // Generate impulse response for reverb
+    function createImpulseResponse(context, duration = 2, decay = 2) {
+      const sampleRate = context.sampleRate;
+      const length = sampleRate * duration;
+      const impulse = context.createBuffer(2, length, sampleRate);
+      const impulseL = impulse.getChannelData(0);
+      const impulseR = impulse.getChannelData(1);
+
+      for (let i = 0; i < length; i++) {
+        const n = length - i;
+        impulseL[i] = (Math.random() * 2 - 1) * Math.pow(n / length, decay);
+        impulseR[i] = (Math.random() * 2 - 1) * Math.pow(n / length, decay);
       }
+      return impulse;
+    }
 
-      // Generate impulse response for reverb
-      function createImpulseResponse(context, duration = 2, decay = 2) {
-        const sampleRate = context.sampleRate;
-        const length = sampleRate * duration;
-        const impulse = context.createBuffer(2, length, sampleRate);
-        const impulseL = impulse.getChannelData(0);
-        const impulseR = impulse.getChannelData(1);
-
-        for (let i = 0; i < length; i++) {
-          const n = length - i;
-          impulseL[i] = (Math.random() * 2 - 1) * Math.pow(n / length, decay);
-          impulseR[i] = (Math.random() * 2 - 1) * Math.pow(n / length, decay);
-        }
-        return impulse;
+    // Initialize audio nodes
+    function initAudioNodes() {
+      if (!audioContext) return;
+      
+      // Create nodes if they don't exist
+      if (!gainNode) gainNode = audioContext.createGain();
+      if (!convolver) {
+        convolver = audioContext.createConvolver();
+        convolver.buffer = createImpulseResponse(audioContext);
       }
-
-      // Draw waveform
-      function drawWaveform(buffer, canvas, container, color = '#6366f1', background = '#e2e8f0') {
-        const canvasCtx = canvas.getContext('2d');
-        canvas.width = container.offsetWidth;
-        canvas.height = container.offsetHeight;
-        const width = canvas.width;
-        const height = canvas.height;
-        const data = buffer.getChannelData(0);
-        const step = Math.ceil(data.length / width);
-        const amp = height / 2;
-
-        canvasCtx.fillStyle = background;
-        canvasCtx.fillRect(0, 0, width, height);
-        canvasCtx.lineWidth = 2;
-        canvasCtx.strokeStyle = color;
-        canvasCtx.beginPath();
-        canvasCtx.moveTo(0, amp);
-
-        for (let i = 0; i < width; i++) {
-          let min = 1.0;
-          let max = -1.0;
-          for (let j = 0; j < step; j++) {
-            const datum = data[(i * step) + j] || 0;
-            if (datum < min) min = datum;
-            if (datum > max) max = datum;
-          }
-          canvasCtx.lineTo(i, (1 + min) * amp);
-        }
-        canvasCtx.stroke();
+      if (!delayNode) {
+        delayNode = audioContext.createDelay(1.0);
+        delayNode.delayTime.value = 0;
       }
+      if (!biquadFilter) {
+        biquadFilter = audioContext.createBiquadFilter();
+        biquadFilter.type = "lowshelf";
+        biquadFilter.frequency.value = 150;
+        biquadFilter.gain.value = 0;
+      }
+    }
 
-      // Update trim waveform and handles
-      function updateTrimWaveform() {
-        if (!audioBuffer) return;
-        drawWaveform(audioBuffer, trimWaveform, trimContainer, '#4ade80', '#1e3a8a');
+    // Connect audio nodes based on current effects
+    function connectAudioNodes() {
+      if (!source || !audioContext) return;
+      
+      // Disconnect all first
+      source.disconnect();
+      convolver.disconnect();
+      gainNode.disconnect();
+      delayNode.disconnect();
+      biquadFilter.disconnect();
+      
+      // Always connect source to destination (for dry signal)
+      source.connect(audioContext.destination);
+      
+      // Connect effects if they're active
+      if (parseFloat(reverbSlider.value) > 0) {
+        source.connect(convolver);
+        convolver.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+      }
+      
+      if (parseFloat(delaySlider.value) > 0) {
+        source.connect(delayNode);
+        delayNode.connect(audioContext.destination);
+      }
+      
+      if (parseFloat(bassBoostSlider.value) > 0) {
+        source.connect(biquadFilter);
+        biquadFilter.connect(audioContext.destination);
+      }
+    }
 
-        const width = trimWaveform.width;
+    // Update slider values
+    function updateEffectValues() {
+      reverbValue.textContent = reverbSlider.value;
+      speedValue.textContent = parseFloat(speedSlider.value).toFixed(1) + 'x';
+      pitchValue.textContent = pitchSlider.value;
+      delayValue.textContent = parseFloat(delaySlider.value).toFixed(2);
+      bassBoostValue.textContent = bassBoostSlider.value;
+      
+      if (source) {
+        source.playbackRate.value = parseFloat(speedSlider.value);
+        source.detune.value = parseFloat(pitchSlider.value) * 100;
+      }
+      
+      if (gainNode) gainNode.gain.value = parseFloat(reverbSlider.value) / 10;
+      if (delayNode) delayNode.delayTime.value = parseFloat(delaySlider.value);
+      if (biquadFilter) biquadFilter.gain.value = parseFloat(bassBoostSlider.value);
+      
+      if (audioBuffer) {
+        durationDisplay.textContent = formatTime(audioBuffer.duration / parseFloat(speedSlider.value));
+      }
+    }
+
+    // Update progress bar and time display
+    function updateProgress() {
+      if (isPlaying && source && audioBuffer) {
+        const currentTime = audioContext.currentTime - startTime + pauseTime;
         const duration = audioBuffer.duration / parseFloat(speedSlider.value);
-        trimStart = parseFloat(trimStartHandle.style.left || '0') / 100 * duration;
-        trimEnd = parseFloat(trimEndHandle.style.left || '100') / 100 * duration;
-
-        // Ensure trimEnd is not less than trimStart
-        if (trimEnd < trimStart) {
-          trimEnd = trimStart;
-          trimEndHandle.style.left = `${(trimEnd / duration) * 100}%`;
+        const progressValue = Math.min((currentTime / duration) * 100, 100);
+        progress.value = progressValue;
+        currentTimeDisplay.textContent = formatTime(currentTime);
+        if (currentTime >= duration) {
+          stopPlayback();
         }
-
-        trimStartTime.textContent = formatTime(trimStart);
-        trimEndTime.textContent = formatTime(trimEnd);
-
-        const startPercent = (trimStart / duration) * 100;
-        const endPercent = (trimEnd / duration) * 100;
-        trimSelection.style.left = `${startPercent}%`;
-        trimSelection.style.width = `${endPercent - startPercent}%`;
+        animationFrameId = requestAnimationFrame(updateProgress);
       }
+    }
 
-      // Handle dragging for trim handles
-      let isDragging = null;
-
-      function startDragging(handle, e) {
-        isDragging = handle;
-        e.preventDefault();
+    // Stop playback
+    function stopPlayback() {
+      if (source) {
+        source.stop();
+        source = null;
       }
+      isPlaying = false;
+      playIcon.classList.remove('hidden');
+      pauseIcon.classList.add('hidden');
+      progress.value = 0;
+      currentTimeDisplay.textContent = '0:00';
+      pauseTime = 0;
+      cancelAnimationFrame(animationFrameId);
+    }
 
-      function stopDragging() {
-        isDragging = null;
-      }
-
-      function dragHandle(e) {
-        if (!isDragging || !audioBuffer) return;
-
-        const rect = trimContainer.getBoundingClientRect();
-        let x = e.clientX - rect.left;
-        if (e.touches) x = e.touches[0].clientX - rect.left;
-
-        x = Math.max(0, Math.min(x, rect.width));
-        const percent = (x / rect.width) * 100;
-
-        if (isDragging === trimStartHandle) {
-          const endPercent = parseFloat(trimEndHandle.style.left || '100');
-          if (percent > endPercent - 1) return;
-          trimStartHandle.style.left = `${percent}%`;
-        } else if (isDragging === trimEndHandle) {
-          const startPercent = parseFloat(trimStartHandle.style.left || '0');
-          if (percent < startPercent + 1) return;
-          trimEndHandle.style.left = `${percent}%`;
-        }
-
-        updateTrimWaveform();
-      }
-
-      trimStartHandle.addEventListener('mousedown', (e) => startDragging(trimStartHandle, e));
-      trimEndHandle.addEventListener('mousedown', (e) => startDragging(trimEndHandle, e));
-      trimStartHandle.addEventListener('touchstart', (e) => startDragging(trimStartHandle, e));
-      trimEndHandle.addEventListener('touchstart', (e) => startDragging(trimEndHandle, e));
-      window.addEventListener('mousemove', dragHandle);
-      window.addEventListener('touchmove', dragHandle);
-      window.addEventListener('mouseup', stopDragging);
-      window.addEventListener('touchend', stopDragging);
-
-      // Update slider values
-      reverbSlider.addEventListener('input', () => {
-        reverbValue.textContent = reverbSlider.value;
-        if (gainNode) gainNode.gain.value = parseFloat(reverbSlider.value) / 10;
-      });
-
-      speedSlider.addEventListener('input', () => {
-        speedValue.textContent = parseFloat(speedSlider.value).toFixed(1) + 'x';
-        if (source) source.playbackRate.value = parseFloat(speedSlider.value);
-        if (audioBuffer) {
-          durationDisplay.textContent = formatTime(audioBuffer.duration / parseFloat(speedSlider.value));
-          updateTrimWaveform();
-        }
-      });
-
-      pitchSlider.addEventListener('input', () => {
-        pitchValue.textContent = pitchSlider.value;
-        if (source) source.detune.value = parseFloat(pitchSlider.value) * 100;
-      });
-
-      delaySlider.addEventListener('input', () => {
-        delayValue.textContent = delaySlider.value;
-        if (window.Pizzicato && pizzicatoSound) {
-          if (pizzicatoSound.effects[0]) {
-            pizzicatoSound.removeEffect(pizzicatoSound.effects[0]);
-          }
-          if (parseFloat(delaySlider.value) > 0) {
-            const delay = new Pizzicato.Effects.Delay({
-              feedback: 0.3,
-              time: parseFloat(delaySlider.value),
-              mix: 0.5
-            });
-            pizzicatoSound.addEffect(delay);
-          }
-        } else {
-          delaySlider.disabled = true;
-          delayValue.textContent = 'N/A';
-        }
-      });
-
-      bassSlider.addEventListener('input', () => {
-        bassValue.textContent = bassSlider.value + ' dB';
-        if (bassNode) bassNode.gain.value = parseFloat(bassSlider.value);
-      });
-
-      volumeSlider.addEventListener('input', () => {
-        if (volumeNode) volumeNode.gain.value = parseFloat(volumeSlider.value);
-      });
-
-      resetButton.addEventListener('click', () => {
-        reverbSlider.value = 0;
-        speedSlider.value = 1;
-        pitchSlider.value = 0;
-        delaySlider.value = 0;
-        bassSlider.value = 0;
-        volumeSlider.value = 0.7;
-        reverbValue.textContent = '0';
-        speedValue.textContent = '1x';
-        pitchValue.textContent = '0';
-        delayValue.textContent = '0';
-        bassValue.textContent = '0 dB';
-        if (gainNode) gainNode.gain.value = 0;
-        if (source) source.playbackRate.value = 1;
-        if (source) source.detune.value = 0;
-        if (window.Pizzicato && pizzicatoSound && pizzicatoSound.effects[0]) {
-          pizzicatoSound.removeEffect(pizzicatoSound.effects[0]);
-        }
-        if (bassNode) bassNode.gain.value = 0;
-        if (volumeNode) volumeNode.gain.value = 0.7;
-        if (audioBuffer) {
-          durationDisplay.textContent = formatTime(audioBuffer.duration);
-          trimStartHandle.style.left = '0%';
-          trimEndHandle.style.left = '100%';
-          updateTrimWaveform();
-        }
-      });
-
-      // Update progress bar and time display
-      function updateProgress() {
-        if (isPlaying && source && audioBuffer) {
-          const currentTime = audioContext.currentTime - startTime + pauseTime;
-          const duration = audioBuffer.duration / parseFloat(speedSlider.value);
-          const progressValue = Math.min((currentTime / duration) * 100, 100);
-          progress.value = progressValue;
-          progressLine.style.width = `${progressValue}%`;
-          currentTimeDisplay.textContent = formatTime(currentTime);
-          if (currentTime >= duration) {
-            stopPlayback();
-          }
-          animationFrameId = requestAnimationFrame(updateProgress);
+    // Reset all effects to default
+    function resetEffects() {
+      reverbSlider.value = 0;
+      speedSlider.value = 1;
+      pitchSlider.value = 0;
+      delaySlider.value = 0;
+      bassBoostSlider.value = 0;
+      volumeSlider.value = 0.7;
+      
+      // Reset cutter
+      cutterStart.value = 0;
+      cutterEnd.value = 100;
+      cutStart = 0;
+      cutEnd = 100;
+      updateCutterLabels();
+      
+      updateEffectValues();
+      connectAudioNodes();
+      
+      // If audio is playing, restart with new settings
+      if (isPlaying) {
+        const wasPlaying = isPlaying;
+        stopPlayback();
+        if (wasPlaying) {
+          playPauseButton.click();
         }
       }
+    }
 
-      // Stop playback
-      function stopPlayback() {
-        if (source) {
-          source.stop();
-          source = null;
-        }
-        if (window.Pizzicato && pizzicatoSound) {
-          pizzicatoSound.stop();
-        }
-        isPlaying = false;
-        playIcon.classList.remove('hidden');
-        pauseIcon.classList.add('hidden');
-        progress.value = 0;
-        progressLine.style.width = '0%';
-        currentTimeDisplay.textContent = '0:00';
-        pauseTime = 0;
-        cancelAnimationFrame(animationFrameId);
+    // Update cutter time labels
+    function updateCutterLabels() {
+      if (!audioBuffer) return;
+      
+      const duration = audioBuffer.duration;
+      const startTime = (cutStart / 100) * duration;
+      const endTime = (cutEnd / 100) * duration;
+      
+      startTimeLabel.textContent = `Start: ${formatTime(startTime)}`;
+      endTimeLabel.textContent = `End: ${formatTime(endTime)}`;
+    }
+
+    // Apply cutter to audio buffer
+    function applyCutter() {
+      if (!audioBuffer || !originalBuffer) return;
+      
+      const duration = originalBuffer.duration;
+      const startOffset = (cutStart / 100) * duration * originalBuffer.sampleRate;
+      const endOffset = (cutEnd / 100) * duration * originalBuffer.sampleRate;
+      const newLength = endOffset - startOffset;
+      
+      if (newLength <= 0) {
+        alert("Invalid cut range. End time must be after start time.");
+        return;
       }
-
-      // Drag and drop
-      dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropZone.classList.add('dragover');
-      });
-
-      dropZone.addEventListener('dragleave', () => {
-        dropZone.classList.remove('dragover');
-      });
-
-      dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('dragover');
-        const file = e.dataTransfer.files[0];
-        if (file && file.type.startsWith('audio/')) {
-          audioInput.files = e.dataTransfer.files;
-          audioInput.dispatchEvent(new Event('change'));
+      
+      const newBuffer = audioContext.createBuffer(
+        originalBuffer.numberOfChannels,
+        newLength,
+        originalBuffer.sampleRate
+      );
+      
+      for (let channel = 0; channel < originalBuffer.numberOfChannels; channel++) {
+        const originalData = originalBuffer.getChannelData(channel);
+        const newData = newBuffer.getChannelData(channel);
+        
+        for (let i = 0; i < newLength; i++) {
+          newData[i] = originalData[i + startOffset];
         }
-      });
+      }
+      
+      audioBuffer = newBuffer;
+      
+      // If audio is playing, restart with new buffer
+      const wasPlaying = isPlaying;
+      stopPlayback();
+      
+      // Update duration display
+      durationDisplay.textContent = formatTime(audioBuffer.duration / parseFloat(speedSlider.value));
+      
+      // Update cutter range to full after cut is applied
+      cutterStart.value = 0;
+      cutterEnd.value = 100;
+      cutStart = 0;
+      cutEnd = 100;
+      updateCutterLabels();
+      
+      if (wasPlaying) {
+        playPauseButton.click();
+      }
+    }
 
-      // Load and decode audio file
-      audioInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+    // Load and decode audio file
+    audioInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
 
+      try {
+        // Show file info
         fileName.textContent = file.name;
         fileSize.textContent = `(${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
         fileInfo.classList.remove('hidden');
-        waveformContainer.classList.remove('hidden');
-
-        try {
-          if (audioContext) {
-            await audioContext.close();
-          }
-          audioContext = new (window.AudioContext || window.webkitAudioContext)();
-          const arrayBuffer = await file.arrayBuffer();
-          audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-          // Initialize Pizzicato if available
-          if (window.Pizzicato) {
-            if (pizzicatoSound) {
-              pizzicatoSound.stop();
-            }
-            pizzicatoSound = new Pizzicato.Sound({
-              source: 'file',
-              options: { path: URL.createObjectURL(file) }
-            });
-          }
-
-          // Setup audio nodes
-          convolver = audioContext.createConvolver();
-          convolver.buffer = createImpulseResponse(audioContext);
-          gainNode = audioContext.createGain();
-          volumeNode = audioContext.createGain();
-          volumeNode.gain.value = parseFloat(volumeSlider.value);
-          bassNode = audioContext.createBiquadFilter();
-          bassNode.type = 'lowshelf';
-          bassNode.frequency.value = 200;
-          bassNode.gain.value = parseFloat(bassSlider.value);
-
-          playPauseButton.disabled = false;
-          downloadButton.disabled = false;
-          downloadBassButton.disabled = false;
-          downloadTrimButton.disabled = false;
-          progress.disabled = false;
-          durationDisplay.textContent = formatTime(audioBuffer.duration);
-          trimStartHandle.style.left = '0%';
-          trimEndHandle.style.left = '100%';
-          drawWaveform(audioBuffer, waveformCanvas, waveformContainer);
-          updateTrimWaveform();
-        } catch (err) {
-          alert('Error loading audio file: ' + err.message);
-          fileName.textContent = 'No file selected';
-          fileSize.textContent = '';
-          fileInfo.classList.add('hidden');
-          waveformContainer.classList.add('hidden');
+        
+        if (audioContext) {
+          await audioContext.close();
         }
-      });
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const arrayBuffer = await file.arrayBuffer();
+        originalBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        audioBuffer = originalBuffer;
+        
+        // Initialize audio nodes
+        initAudioNodes();
+        
+        // Enable controls
+        playPauseButton.disabled = false;
+        downloadButton.disabled = false;
+        downloadBassButton.disabled = false;
+        downloadCutButton.disabled = false;
+        progress.disabled = false;
+        cutterStart.disabled = false;
+        cutterEnd.disabled = false;
+        applyCutterButton.disabled = false;
+        
+        // Update duration display
+        durationDisplay.textContent = formatTime(audioBuffer.duration / parseFloat(speedSlider.value));
+        
+        // Update cutter range
+        cutterStart.max = 100;
+        cutterEnd.max = 100;
+        updateCutterLabels();
+      } catch (err) {
+        alert('Error loading audio file: ' + err.message);
+      }
+    });
 
-      // Play or pause audio
-      playPauseButton.addEventListener('click', () => {
-        if (isPlaying) {
-          audioContext.suspend();
-          if (window.Pizzicato && pizzicatoSound) {
-            pizzicatoSound.pause();
-          }
+    // Play or pause audio
+    playPauseButton.addEventListener('click', () => {
+      if (isPlaying) {
+        audioContext.suspend().then(() => {
           isPlaying = false;
           playIcon.classList.remove('hidden');
           pauseIcon.classList.add('hidden');
           cancelAnimationFrame(animationFrameId);
-        } else {
-          if (!audioBuffer) return;
-          if (source) {
-            audioContext.resume();
-            if (window.Pizzicato && pizzicatoSound) {
-              pizzicatoSound.play();
-            }
-          } else {
-            source = audioContext.createBufferSource();
-            source.buffer = audioBuffer;
-            source.playbackRate.value = parseFloat(speedSlider.value);
-            source.detune.value = parseFloat(pitchSlider.value) * 100;
-
-            source.connect(bassNode);
-            bassNode.connect(volumeNode);
-            volumeNode.connect(audioContext.destination);
-            volumeNode.connect(convolver);
-            convolver.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-
-            source.start(0, pauseTime);
-            startTime = audioContext.currentTime - pauseTime;
-            if (window.Pizzicato && pizzicatoSound) {
-              pizzicatoSound.play();
-            }
-          }
-          isPlaying = true;
-          playIcon.classList.add('hidden');
-          pauseIcon.classList.remove('hidden');
-          updateProgress();
-        }
-      });
-
-      // Seek audio
-      progress.addEventListener('input', () => {
+        });
+      } else {
         if (!audioBuffer) return;
-        const duration = audioBuffer.duration / parseFloat(speedSlider.value);
-        const seekTime = Math.max(0, Math.min((progress.value / 100) * duration, duration));
-        pauseTime = seekTime;
-        currentTimeDisplay.textContent = formatTime(seekTime);
-        progressLine.style.width = `${progress.value}%`;
-        if (isPlaying) {
-          if (source) source.stop();
+        
+        initAudioNodes();
+        
+        if (source) {
+          audioContext.resume().then(() => {
+            isPlaying = true;
+            playIcon.classList.add('hidden');
+            pauseIcon.classList.remove('hidden');
+            updateProgress();
+          });
+        } else {
           source = audioContext.createBufferSource();
           source.buffer = audioBuffer;
           source.playbackRate.value = parseFloat(speedSlider.value);
           source.detune.value = parseFloat(pitchSlider.value) * 100;
-
-          source.connect(bassNode);
-          bassNode.connect(volumeNode);
-          volumeNode.connect(audioContext.destination);
-          volumeNode.connect(convolver);
-          convolver.connect(gainNode);
-          gainNode.connect(audioContext.destination);
-
+          
+          // Connect nodes based on current effects
+          connectAudioNodes();
+          
           source.start(0, pauseTime);
           startTime = audioContext.currentTime - pauseTime;
-          if (window.Pizzicato && pizzicatoSound) {
-            pizzicatoSound.play();
-            pizzicatoSound.sourceNode.currentTime = pauseTime;
-          }
+          
+          isPlaying = true;
+          playIcon.classList.add('hidden');
+          pauseIcon.classList.remove('hidden');
           updateProgress();
+          
+          // Handle when audio ends naturally
+          source.onended = () => {
+            stopPlayback();
+          };
         }
-      });
+      }
+    });
 
-      // Download as MP3
-      async function downloadAudio(applyBass = false, trim = false) {
-        if (!audioBuffer) {
-          alert('No audio file loaded.');
-          return null;
+    // Seek audio
+    progress.addEventListener('input', () => {
+      if (!audioBuffer) return;
+      const duration = audioBuffer.duration / parseFloat(speedSlider.value);
+      const seekTime = Math.max(0, Math.min((progress.value / 100) * duration, duration));
+      pauseTime = seekTime;
+      currentTimeDisplay.textContent = formatTime(seekTime);
+      if (isPlaying) {
+        if (source) source.stop();
+        source = audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.playbackRate.value = parseFloat(speedSlider.value);
+        source.detune.value = parseFloat(pitchSlider.value) * 100;
+        
+        // Connect nodes based on current effects
+        connectAudioNodes();
+        
+        source.start(0, pauseTime);
+        startTime = audioContext.currentTime - pauseTime;
+        updateProgress();
+        
+        // Handle when audio ends naturally
+        source.onended = () => {
+          stopPlayback();
+        };
+      }
+    });
+
+    // Volume control
+    volumeSlider.addEventListener('input', () => {
+      if (audioContext) {
+        audioContext.destination.gain.value = parseFloat(volumeSlider.value);
+      }
+    });
+
+    // Effect sliders
+    reverbSlider.addEventListener('input', updateEffectValues);
+    speedSlider.addEventListener('input', updateEffectValues);
+    pitchSlider.addEventListener('input', updateEffectValues);
+    delaySlider.addEventListener('input', updateEffectValues);
+    bassBoostSlider.addEventListener('input', updateEffectValues);
+
+    // Reset button
+    resetButton.addEventListener('click', resetEffects);
+
+    // Cutter controls
+    cutterStart.addEventListener('input', () => {
+      cutStart = parseFloat(cutterStart.value);
+      if (cutStart >= cutEnd) {
+        cutStart = cutEnd - 1;
+        cutterStart.value = cutStart;
+      }
+      updateCutterLabels();
+    });
+
+    cutterEnd.addEventListener('input', () => {
+      cutEnd = parseFloat(cutterEnd.value);
+      if (cutEnd <= cutStart) {
+        cutEnd = cutStart + 1;
+        cutterEnd.value = cutEnd;
+      }
+      updateCutterLabels();
+    });
+
+    applyCutterButton.addEventListener('click', applyCutter);
+
+    // Download as MP3
+    async function downloadProcessedAudio(bassBoosted = false, cutAudio = false) {
+      if (!audioBuffer) {
+        alert('No audio file loaded.');
+        return;
+      }
+      
+      try {
+        // Determine which button to disable/show spinner
+        if (bassBoosted) {
+          downloadBassButton.disabled = true;
+          downloadBassSpinner.classList.remove('hidden');
+        } else if (cutAudio) {
+          downloadCutButton.disabled = true;
+          downloadCutSpinner.classList.remove('hidden');
+        } else {
+          downloadButton.disabled = true;
+          downloadSpinner.classList.remove('hidden');
         }
-        try {
-          const speed = parseFloat(speedSlider.value);
-          if (speed <= 0) throw new Error('Invalid speed value.');
+        
+        const speed = parseFloat(speedSlider.value);
+        if (speed <= 0) throw new Error('Invalid speed value.');
 
-          let startTime = trim ? trimStart * speed : 0;
-          let endTime = trim ? trimEnd * speed : audioBuffer.duration;
-          if (startTime >= endTime || endTime > audioBuffer.duration || startTime < 0) {
-            throw new Error('Invalid trim times.');
-          }
-
-          // Create trimmed buffer if necessary
-          let processedBuffer = audioBuffer;
-          if (trim || speed !== 1) {
-            const length = Math.ceil((endTime - startTime) / speed * audioBuffer.sampleRate);
-            const offlineContext = new OfflineAudioContext(
-              audioBuffer.numberOfChannels,
-              length,
-              audioBuffer.sampleRate
-            );
-            const source = offlineContext.createBufferSource();
-            source.buffer = audioBuffer;
-            source.playbackRate.value = speed;
-            source.start(0, startTime / speed);
-            source.stop((endTime - startTime) / speed);
-            source.connect(offlineContext.destination);
-            processedBuffer = await offlineContext.startRendering();
-          }
-
-          // Apply effects
-          const offlineContext = new OfflineAudioContext(
-            processedBuffer.numberOfChannels,
-            processedBuffer.length,
-            processedBuffer.sampleRate
+        // Create buffer to process
+        let bufferToProcess = audioBuffer;
+        
+        // If we want cut audio, create a buffer with just the cut portion
+        if (cutAudio && originalBuffer) {
+          const duration = originalBuffer.duration;
+          const startOffset = (cutStart / 100) * duration * originalBuffer.sampleRate;
+          const endOffset = (cutEnd / 100) * duration * originalBuffer.sampleRate;
+          const newLength = endOffset - startOffset;
+          
+          if (newLength <= 0) throw new Error("Invalid cut range");
+          
+          const newBuffer = audioContext.createBuffer(
+            originalBuffer.numberOfChannels,
+            newLength,
+            originalBuffer.sampleRate
           );
+          
+          for (let channel = 0; channel < originalBuffer.numberOfChannels; channel++) {
+            const originalData = originalBuffer.getChannelData(channel);
+            const newData = newBuffer.getChannelData(channel);
+            
+            for (let i = 0; i < newLength; i++) {
+              newData[i] = originalData[i + startOffset];
+            }
+          }
+          
+          bufferToProcess = newBuffer;
+        }
+        
+        // Create OfflineAudioContext for rendering
+        const offlineContext = new OfflineAudioContext(
+          bufferToProcess.numberOfChannels,
+          Math.ceil(bufferToProcess.length / speed),
+          bufferToProcess.sampleRate
+        );
 
-          const source = offlineContext.createBufferSource();
-          source.buffer = processedBuffer;
-          source.detune.value = parseFloat(pitchSlider.value) * 100;
+        const source = offlineContext.createBufferSource();
+        source.buffer = bufferToProcess;
+        source.playbackRate.value = speed;
+        source.detune.value = parseFloat(pitchSlider.value) * 100;
 
+        // Apply effects if needed
+        if (bassBoosted) {
+          const filter = offlineContext.createBiquadFilter();
+          filter.type = "lowshelf";
+          filter.frequency.value = 150;
+          filter.gain.value = 20; // Max bass boost for the "Bass Boosted" download
+          
+          source.connect(filter);
+          filter.connect(offlineContext.destination);
+        } else {
+          // Apply current effects (except for bass boost which is handled above)
           const convolver = offlineContext.createConvolver();
           convolver.buffer = createImpulseResponse(offlineContext);
           const gain = offlineContext.createGain();
           gain.gain.value = parseFloat(reverbSlider.value) / 10;
-
-          let finalNode = offlineContext.destination;
-
-          if (applyBass) {
-            const bass = offlineContext.createBiquadFilter();
-            bass.type = 'lowshelf';
-            bass.frequency.value = 200;
-            bass.gain.value = parseFloat(bassSlider.value);
-            source.connect(bass);
-            bass.connect(convolver);
-            convolver.connect(gain);
-            gain.connect(finalNode);
-          } else {
+          const delay = offlineContext.createDelay(1.0);
+          delay.delayTime.value = parseFloat(delaySlider.value);
+          
+          // Connect nodes based on current effects
+          source.connect(offlineContext.destination);
+          if (parseFloat(reverbSlider.value) > 0) {
             source.connect(convolver);
             convolver.connect(gain);
-            gain.connect(finalNode);
+            gain.connect(offlineContext.destination);
           }
-
-          source.start();
-          const renderedBuffer = await offlineContext.startRendering();
-          return await audioBufferToMp3(renderedBuffer);
-        } catch (err) {
-          alert('Error processing or downloading audio: ' + err.message);
-          return null;
+          if (parseFloat(delaySlider.value) > 0) {
+            source.connect(delay);
+            delay.connect(offlineContext.destination);
+          }
         }
-      }
 
-      downloadButton.addEventListener('click', async () => {
-        downloadButton.disabled = true;
-        downloadSpinner.classList.remove('hidden');
-        const mp3Blob = await downloadAudio(false, false);
-        if (mp3Blob) {
-          const url = URL.createObjectURL(mp3Blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'processed_audio.mp3';
-          a.click();
-          URL.revokeObjectURL(url);
-        }
+        source.start();
+        const renderedBuffer = await offlineContext.startRendering();
+
+        // Convert to MP3
+        const mp3Blob = await audioBufferToMp3(renderedBuffer);
+
+        // Trigger download
+        const url = URL.createObjectURL(mp3Blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        // Set appropriate filename
+        let filename = 'processed_audio.mp3';
+        if (bassBoosted) filename = 'bass_boosted.mp3';
+        if (cutAudio) filename = 'cut_audio.mp3';
+        
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert('Error processing or downloading audio: ' + err.message);
+      } finally {
+        // Re-enable buttons and hide spinners
         downloadButton.disabled = false;
-        downloadSpinner.classList.add('hidden');
-      });
-
-      downloadBassButton.addEventListener('click', async () => {
-        downloadBassButton.disabled = true;
-        downloadBassSpinner.classList.remove('hidden');
-        const mp3Blob = await downloadAudio(true, false);
-        if (mp3Blob) {
-          const url = URL.createObjectURL(mp3Blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'bass_boosted_audio.mp3';
-          a.click();
-          URL.revokeObjectURL(url);
-        }
         downloadBassButton.disabled = false;
+        downloadCutButton.disabled = false;
+        downloadSpinner.classList.add('hidden');
         downloadBassSpinner.classList.add('hidden');
-      });
+        downloadCutSpinner.classList.add('hidden');
+      }
+    }
 
-      downloadTrimButton.addEventListener('click', async () => {
-        downloadTrimButton.disabled = true;
-        downloadTrimSpinner.classList.remove('hidden');
-        const mp3Blob = await downloadAudio(false, true);
-        if (mp3Blob) {
-          const url = URL.createObjectURL(mp3Blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'trimmed_audio.mp3';
-          a.click();
-          URL.revokeObjectURL(url);
+    // Set up download buttons
+    downloadButton.addEventListener('click', () => downloadProcessedAudio(false, false));
+    downloadBassButton.addEventListener('click', () => downloadProcessedAudio(true, false));
+    downloadCutButton.addEventListener('click', () => downloadProcessedAudio(false, true));
+
+    // Convert AudioBuffer to MP3 Blob
+    async function audioBufferToMp3(buffer) {
+      try {
+        const numChannels = buffer.numberOfChannels;
+        const sampleRate = buffer.sampleRate;
+        const samples = buffer.length;
+
+        // Prepare samples for lamejs
+        const left = buffer.getChannelData(0);
+        const right = numChannels > 1 ? buffer.getChannelData(1) : left;
+        const leftSamples = new Int16Array(samples);
+        const rightSamples = new Int16Array(samples);
+
+        for (let i = 0; i < samples; i++) {
+          leftSamples[i] = Math.max(-1, Math.min(1, left[i])) * 0x7FFF;
+          rightSamples[i] = Math.max(-1, Math.min(1, right[i])) * 0x7FFF;
         }
-        downloadTrimButton.disabled = false;
-        downloadTrimSpinner.classList.add('hidden');
-      });
 
-      // Convert AudioBuffer to MP3 Blob
-      async function audioBufferToMp3(buffer) {
-        try {
-          const numChannels = buffer.numberOfChannels;
-          const sampleRate = buffer.sampleRate;
-          const samples = buffer.length;
+        // Encode to MP3
+        const mp3Encoder = new lamejs.Mp3Encoder(numChannels, sampleRate, 128);
+        const mp3Data = [];
+        const blockSize = 1152;
 
-          const left = buffer.getChannelData(0);
-          const right = numChannels > 1 ? buffer.getChannelData(1) : left;
-          const leftSamples = new Int16Array(samples);
-          const rightSamples = new Int16Array(samples);
-
-          for (let i = 0; i < samples; i++) {
-            leftSamples[i] = Math.max(-1, Math.min(1, left[i])) * 0x7FFF;
-            rightSamples[i] = Math.max(-1, Math.min(1, right[i])) * 0x7FFF;
-          }
-
-          const mp3Encoder = new lamejs.Mp3Encoder(numChannels, sampleRate, 128);
-          const mp3Data = [];
-          const blockSize = 1152;
-
-          for (let i = 0; i < samples; i += blockSize) {
-            const leftChunk = leftSamples.subarray(i, i + blockSize);
-            const rightChunk = rightSamples.subarray(i, i + blockSize);
-            const mp3buf = mp3Encoder.encodeBuffer(leftChunk, rightChunk);
-            if (mp3buf.length > 0) {
-              mp3Data.push(mp3buf);
-            }
-          }
-
-          const mp3buf = mp3Encoder.flush();
+        for (let i = 0; i < samples; i += blockSize) {
+          const leftChunk = leftSamples.subarray(i, i + blockSize);
+          const rightChunk = rightSamples.subarray(i, i + blockSize);
+          const mp3buf = mp3Encoder.encodeBuffer(leftChunk, rightChunk);
           if (mp3buf.length > 0) {
             mp3Data.push(mp3buf);
           }
-
-          const mp3Array = new Uint8Array(mp3Data.reduce((acc, curr) => acc.concat(Array.from(curr)), []));
-          return new Blob([mp3Array], { type: 'audio/mp3' });
-        } catch (err) {
-          throw new Error('MP3 encoding failed: ' + err.message);
         }
+
+        const mp3buf = mp3Encoder.flush();
+        if (mp3buf.length > 0) {
+          mp3Data.push(mp3buf);
+        }
+
+        const mp3Array = new Uint8Array(mp3Data.reduce((acc, curr) => acc.concat(Array.from(curr)), []));
+        return new Blob([mp3Array], { type: 'audio/mp3' });
+      } catch (err) {
+        throw new Error('MP3 encoding failed: ' + err.message);
       }
+    }
 
-      // Convert AudioBuffer to WAV Blob (for fallback or debugging)
-      function audioBufferToWav(buffer) {
-        const numChannels = buffer.numberOfChannels;
-        const sampleRate = buffer.sampleRate;
-        const length = buffer.length * numChannels * 2 + 44;
-        const arrayBuffer = new ArrayBuffer(length);
-        const view = new DataView(arrayBuffer);
+    // Dark mode toggle
+    toggleSwitch.addEventListener('change', function() {
+      document.body.classList.toggle('dark-mode');
+    });
 
-        let offset = 0;
-        const writeString = (str) => {
-          for (let i = 0; i < str.length; i++) {
-            view.setUint8(offset + i, str.charCodeAt(i));
-          }
-          offset += str.length;
-        };
-
-        writeString('RIFF');
-        view.setUint32(offset, 36 + buffer.length * numChannels * 2, true);
-        offset += 4;
-        writeString('WAVE');
-        writeString('fmt ');
-        view.setUint32(offset, 16, true);
-        offset += 4;
-        view.setUint16(offset, 1, true);
-        offset += 2;
-        view.setUint16(offset, numChannels, true);
-        offset += 2;
-        view.setUint32(offset, sampleRate, true);
-        offset += 4;
-        view.setUint32(offset, sampleRate * numChannels * 2, true);
-        offset += 4;
-        view.setUint16(offset, numChannels * 2, true);
-        offset += 2;
-        view.setUint16(offset, 16, true);
-        offset += 2;
-        writeString('data');
-        view.setUint32(offset, buffer.length * numChannels * 2, true);
-        offset += 4;
-
-        for (let i = 0; i < buffer.length; i++) {
-          for (let channel = 0; channel < numChannels; channel++) {
-            const sample = Math.max(-1, Math.min(1, buffer.getChannelData(channel)[i]));
-            view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
-            offset += 2;
-          }
-        }
-
-        return new Blob([arrayBuffer], { type: 'audio/wav' });
+    // Drag and drop for file upload
+    const dropZone = document.getElementById('dropZone');
+    
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      
+      if (e.dataTransfer.files.length) {
+        audioInput.files = e.dataTransfer.files;
+        const event = new Event('change');
+        audioInput.dispatchEvent(event);
       }
     });
   </script>
